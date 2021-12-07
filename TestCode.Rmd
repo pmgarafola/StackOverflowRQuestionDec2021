@@ -1,0 +1,95 @@
+---
+title: "Test"
+author: "Peter Garafola"
+date: "11/26/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# This is the setup chunk
+library(tidyverse)
+library(knitr) 
+library(here)
+library(kableExtra)
+library(latex2exp)
+library(gridExtra)
+library(GGally)
+library(MASS)
+library(gmodels)
+library(ggrepel)
+library(unrepx)
+library(ggDoE)
+library(olsrr)
+library(grid)
+library(emmeans)
+#
+options(htmltools.dir.version = FALSE)
+#
+knitr::opts_chunk$set(echo = TRUE,
+	fig.align = "center",
+	fig.height = 7,
+	fig.path = "./figures/",
+	fig.width = 7,
+	message = FALSE,
+	warning = FALSE,
+	comment = NA,
+	root.dir = here()
+)
+#
+# Clear workspace
+#
+rm(list=ls())
+#
+# kable format
+#
+x<-options(knitr.table.format = "latex")
+```
+
+```{r}
+
+#
+testData<-read_csv("TestData.csv",col_names=T,
+                  col_types="ffffnn")
+head(testData)
+#
+# Define modify function for SD ratio column
+#
+sd_ratio<-function(x,y){
+  return(max(x,y)/min(x,y))
+}
+#
+# Set up storage
+#
+nc<-4 # number of factors in data
+testDataSum<-tibble(SD_No=rep(NA,nc),
+                   SD_Yes=rep(NA,nc),
+                   SD_Ratio=rep(NA,nc))
+#
+Factor<-vector("list",4)
+SDList<-vector("list",4)
+#
+# For Loop. Group data by factors 1,2,3,4
+#
+for (i in 1:4){
+  Factor[[i]]<-names(testData[,i])
+  SDList[[i]]<-testData %>% 
+  group_by(testData[,i])%>%
+  summarize(SD=sd(Var1))
+}
+# Load summary DF with data by unlisting SDList
+#
+testDataSum$SD_No<-as.vector(matrix(unlist(SDList),ncol=4,byrow=T)[,3])
+testDataSum$SD_Yes<-as.vector(matrix(unlist(SDList),ncol=4,byrow=T)[,4])
+testDataSum$SD_Ratio=modify2(testDataSum$SD_No,testDataSum$SD_Yes,sd_ratio)
+#
+# Load formatted factor names and put it at the front
+#
+testDataSum<-testDataSum %>% 
+  mutate(Factor=unlist(Factor)) %>%
+  relocate(Factor)
+# 
+# Show desired result
+#
+testDataSum
+```
